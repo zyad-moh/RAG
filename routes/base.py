@@ -1,5 +1,13 @@
 from fastapi import FastAPI,APIRouter
-base_router=APIRouter()
+import os
+
+base_router=APIRouter(
+   prefix="/api/v1",
+   tags=["api_v1"],
+)
 @base_router.get("/")#dicorator
-def welcome():
-   return {"message": "Hello World!"}
+async def welcome():
+   app_name=os.getenv("APP_NAME")
+   return {
+      "app_name": app_name
+      }
