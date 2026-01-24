@@ -27,7 +27,7 @@ async def upload_data(project_id:str,file:UploadFile,
          }
       )
    
-   file_path=DataController().generate_unique_filename(orig_file_name=file.filename,project_id=project_id)
+   file_path,file_id=DataController().generate_unique_filepath(orig_file_name=file.filename,project_id=project_id)
    project_dir_path=ProjectController().get_project_path(project_id=project_id)#for saaaaaaveeeeee storeeeee the file which uploaded from user
    """file_path=os.path.join(
       project_dir_path,
@@ -47,7 +47,8 @@ async def upload_data(project_id:str,file:UploadFile,
       )
    return JSONResponse(
        content={
-           "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value
+           "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
+           "file id": file_id
          }
          )
 
