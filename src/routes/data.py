@@ -3,10 +3,11 @@ from fastapi import FastAPI,APIRouter,Depends,UploadFile,status #as file have a 
 from fastapi.responses import JSONResponse
 import os
 from helpers.config import get_settings,settings
-from controllers import DataController,ProjectController #don't forget i accessed them easly because of __init__ files
-import aiofiles
+from controllers import DataController,ProjectController,ProcessController #don't forget i accessed them easly because of __init__ files
+import aiofiles                                          
 from models import ResponseSignal
 import logging
+from .schemes.data import ProcessRequest
 logger = logging.getLogger('uvicorn.error')
 data_router=APIRouter( # prefix for end point
    prefix="/api/v1/data",
@@ -52,9 +53,24 @@ async def upload_data(project_id:str,file:UploadFile,
          }
          )
 
+@data_router.post("/process/{project_id}")
+async def procces_endpoint(project_id:str , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id) but it's processed
+   file_id=Proccess_Request.file_id 
+   chunk_size=Proccess_Request.chunk_size
+   overlap_size=Proccess_Request.overlap_size
+   Process_Controller=ProcessController(project_id=project_id)
+   file_content=Process_Controller.get_file_content(file_id=file_id)
+   file_chunks =Process_Controller.procces_file_content(file_content=file_content,file_id=file_id,chunk_size=chunk_size,overlap_size=overlap_size)
+   
+   if file_chunks is None or len(file_chunks) == 0:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "signal": ResponseSignal.PROCESSING_FAILED.value
+            }
+        )
 
-
-
+   return file_chunks
 # note here (async def upload_data) i get uploaded file , i need to validate it (logic -> controller )
 # chunk by chunk it's similar data augmantation you know !!!
 #Lazy loading , Streaming data instead of loading all at once
