@@ -1,5 +1,5 @@
 # this for upload 
-from fastapi import FastAPI,APIRouter,Depends,UploadFile,status #as file have a spatial class in fast api
+from fastapi import FastAPI,APIRouter,Depends,UploadFile,status,Request #as file have a spatial class in fast api
 from fastapi.responses import JSONResponse
 import os
 from helpers.config import get_settings,settings
@@ -8,6 +8,7 @@ import aiofiles
 from models import ResponseSignal
 import logging
 from .schemes.data import ProcessRequest
+from models.ProjectModel import ProjectModel
 logger = logging.getLogger('uvicorn.error')
 data_router=APIRouter( # prefix for end point
    prefix="/api/v1/data",
@@ -16,8 +17,13 @@ data_router=APIRouter( # prefix for end point
 # project id : when make procces like upload file i (user) should tell system what is project id 
 #function for end point 
 @data_router.post("/upload/{project_id}")# end point , recieve file then upload it to the system
-async def upload_data(project_id:str,file:UploadFile,
+async def upload_data(request:Request,project_id:str,file:UploadFile,
                      app_settings:settings=Depends(get_settings)): 
+   
+   project_model=ProjectModel(db_client=request.app.db_client)
+   project=await project_model.get_project_or_create_one( #await to able to collect results
+      project_id=project_id
+   )#here we store project_id in mongodb using projectmodel based on db_scheme (project)
    isvalid,res=DataController().validate_uploaded_file(file=file) 
    
    if not isvalid:
@@ -49,7 +55,8 @@ async def upload_data(project_id:str,file:UploadFile,
    return JSONResponse(
        content={
            "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-           "file id": file_id
+           "file id": file_id,
+           #"project_id":str(project._id)
          }
          )
 
@@ -99,3 +106,4 @@ This is the connection string your app uses to talk to MongoDB.
 It does not refer to the volume name.
 
 It refers to where MongoDB is listening, which depends on your host or Docker network."""
+#request:Request:you need to know each info about comming request ,and contain the app in main

@@ -6,9 +6,9 @@ from helpers.config import get_settings
 app=FastAPI()
 @app.on_event("startup")
 async def startup_dp_client():
-    settings = get_settings()# equal to i take obj from class 
+    settings = get_settings()# equal to i take obj from class  don't write get_settings.MONGODB_URL
 
-    app.mongo_conn=AsyncIOMotorClient(get_settings.MONGODB_URL)
+    app.mongo_conn=AsyncIOMotorClient(settings.MONGODB_URL)
     app.db_client =app.mongo_conn[settings.MONGODB_DATABASE]
 
 #Case A — 1 user uploads a file Only 1 connection is used at a time, but it is reused for multiple requests.
