@@ -77,3 +77,25 @@ async def procces_endpoint(project_id:str , Proccess_Request: ProcessRequest):#P
 #raise TypeError(f'Object of type {o.__class__.__name__} '
 #   TypeError: Object of type ResponseSignal is not JSON serializable 
 # return {"signal": ResponseSignal.FILE_TYPE_NOT_SUPPORTED} should be FILE_TYPE_NOT_SUPPORTED.value
+""""1️⃣ mongo_data:/data/db
+
+This is the Docker named volume.
+
+It tells Docker where MongoDB stores its data inside the container.
+
+Example from docker-compose.yml:
+
+volumes:
+  - mongo_data:/data/db
+
+
+✅ This has nothing to do with the connection URL.
+It is purely for persistent storage inside Docker.
+
+2️⃣ MONGODB_URL
+
+This is the connection string your app uses to talk to MongoDB.
+
+It does not refer to the volume name.
+
+It refers to where MongoDB is listening, which depends on your host or Docker network."""
