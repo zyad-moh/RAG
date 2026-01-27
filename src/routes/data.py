@@ -9,6 +9,8 @@ from models import ResponseSignal
 import logging
 from .schemes.data import ProcessRequest
 from models.ProjectModel import ProjectModel
+from models.ChunkModel import ChunkModel#contain functions like create
+from models.db_schemes import DataChunk
 logger = logging.getLogger('uvicorn.error')
 data_router=APIRouter( # prefix for end point
    prefix="/api/v1/data",
@@ -61,10 +63,23 @@ async def upload_data(request:Request,project_id:str,file:UploadFile,
          )
 
 @data_router.post("/process/{project_id}")
-async def procces_endpoint(project_id:str , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id) but it's processed
+async def procces_endpoint(request:Request,project_id:str , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id,chunk_size,over_lap,do_reset -> parameters came with request in postman->body->raw) but it's processed
    file_id=Proccess_Request.file_id 
    chunk_size=Proccess_Request.chunk_size
    overlap_size=Proccess_Request.overlap_size
+   do_reset=Proccess_Request.do_reset
+
+   project_model=ProjectModel(db_client=request.app.db_client)
+   project=await project_model.get_project_or_create_one( #await to able to collect results
+      project_id=project_id
+   )
+   chunk_model=ChunkModel(db_client=request.app.db_client)# obj from ChunkModel cladd which have functions like delete 
+   if do_reset == 1:
+      chunk_model.delete_chunk_by_project_id(
+         project_id=project.id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
+      )
+
+   
    Process_Controller=ProcessController(project_id=project_id)
    file_content=Process_Controller.get_file_content(file_id=file_id)
    file_chunks =Process_Controller.procces_file_content(file_content=file_content,file_id=file_id,chunk_size=chunk_size,overlap_size=overlap_size)
@@ -76,8 +91,34 @@ async def procces_endpoint(project_id:str , Proccess_Request: ProcessRequest):#P
                 "signal": ResponseSignal.PROCESSING_FAILED.value
             }
         )
+   # i need to convert each chunk to object of data chunk
+   file_chunks_records=[
+      DataChunk(
+         chunk_text=chunk.page_content,
+         chunk_metadata=chunk.metadata,
+         chunk_order=i+1,
+         chunk_project_id=project.id
+           
+      )
+      for i,chunk in enumerate(file_chunks)
+   ]
+   chunk_model=ChunkModel(
+      db_client=request.app.db_client
+   )
+   chunk_model=ChunkModel(db_client=request.app.db_client)# obj from ChunkModel cladd which have functions like delete 
+   if do_reset == 1:
+      _ = await chunk_model.delete_chunk_by_project_id(# i need to konw how function runed also i didn't call the _ ????? 
+         project_id=project.id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
+      )
 
-   return file_chunks
+   no_records=await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+   return JSONResponse(
+      {
+         "signal":ResponseSignal.PROCESSING_SUCCESS.value,
+         "inserted_chunks":no_records
+      }
+
+   )
 # note here (async def upload_data) i get uploaded file , i need to validate it (logic -> controller )
 # chunk by chunk it's similar data augmantation you know !!!
 #Lazy loading , Streaming data instead of loading all at once

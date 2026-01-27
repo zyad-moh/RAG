@@ -8,8 +8,8 @@ class ProjectModel(BaseDataModel):
         self.collection=self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
 # now i have the collectoin lets make some process 1-creat project field
     async def  create_project(self,project:Project):# let'ss use the scheme this function will take object from project(pydantic) to insert it
-        result=await self.collection.insert_one(project.dict())#await for motor , each document in collectoin have extra _id or could say inserted with id 
-        project._id=result.inserted_id  
+        result=await self.collection.insert_one(project.dict(by_alias=True, exclude_unset=True))#await for motor , each document in collectoin have extra _id or could say inserted with id 
+        project._id=result.inserted_id  # when insert data _id musn't be there as if he exist it's prevent mongo to create _id
         return project # what if _id doesn't exist in result.inserted_id sol (get/create)
 
     async def  get_project_or_create_one(self,project_id:str):# let'ss use the scheme this function will take object from project(pydantic) to insert it

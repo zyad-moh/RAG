@@ -3,7 +3,7 @@ from typing import Optional
 from bson.objectid import ObjectId
 #مواصفات لشكل الداتا هتكون عاملة ازاى
 class Project(BaseModel):
-    id: Optional[ObjectId] = Field(None, alias="_id")
+    id: Optional[ObjectId] = Field(None, alias="_id")# _ refer that the object is private sol : make alies
     project_id: str = Field(..., min_length=1)
 
     @validator('project_id')
