@@ -15,3 +15,14 @@ class Project(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+    
+    @classmethod
+    def get_indexes(cls):
+        return[
+            {
+                "key":[("project_id",1)], # we make list as we could include one or more key  project_id ia the field or column we will apply indedxing on it 1 -> desc
+                "name": "project_id_index_1",
+                "unique": True # project id must be unique
+
+            }
+        ]

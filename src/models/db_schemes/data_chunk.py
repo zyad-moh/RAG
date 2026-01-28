@@ -11,3 +11,14 @@ class DataChunk(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+    @classmethod
+    def get_indexes(cls):
+        return[
+            {
+                "key":[("chunk_project_id",1)], # we make list as we could include one or more key  project_id ia the field or column we will apply indedxing on it 1 -> desc
+                "name": "chunk_project_id_index_1",
+                "unique": False # chunk_project_id_ coulsn't be unique each project id related to many ununique chunks 
+
+            }
+        ]

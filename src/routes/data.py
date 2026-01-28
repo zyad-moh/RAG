@@ -9,8 +9,10 @@ from models import ResponseSignal
 import logging
 from .schemes.data import ProcessRequest
 from models.ProjectModel import ProjectModel
+from models.AssetModel import AssetModel
 from models.ChunkModel import ChunkModel#contain functions like create
-from models.db_schemes import DataChunk
+from models.db_schemes import DataChunk,Asset
+from models.enums.AssetTypeEnum import AssetTypeEnum
 logger = logging.getLogger('uvicorn.error')
 data_router=APIRouter( # prefix for end point
    prefix="/api/v1/data",
@@ -22,7 +24,7 @@ data_router=APIRouter( # prefix for end point
 async def upload_data(request:Request,project_id:str,file:UploadFile,
                      app_settings:settings=Depends(get_settings)): 
    
-   project_model=ProjectModel(db_client=request.app.db_client)
+   project_model=await ProjectModel.create_instance(db_client=request.app.db_client)
    project=await project_model.get_project_or_create_one( #await to able to collect results
       project_id=project_id
    )#here we store project_id in mongodb using projectmodel based on db_scheme (project)
@@ -54,13 +56,23 @@ async def upload_data(request:Request,project_id:str,file:UploadFile,
             "signal":ResponseSignal.FILE_UPLOAD_FAILED.value
          }
       )
+   asset_model=await AssetModel.create_instance(db_client=request.app.db_client)# that create the collection if not exist not creaate the the document
+   asset_resource =Asset(
+      asset_project_id=project.id,
+      asset_type=AssetTypeEnum.FILE.value,
+      asset_name=file_id,
+      asset_size=os.path.getsize(file_path)
+   )# it's just the parameter of assets
+   asset_record = await asset_model.create_assets(asset=asset_resource )
+
    return JSONResponse(
        content={
            "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-           "file id": file_id,
+           "file id": str(asset_record.id),
            #"project_id":str(project._id)
          }
          )
+   
 
 @data_router.post("/process/{project_id}")
 async def procces_endpoint(request:Request,project_id:str , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id,chunk_size,over_lap,do_reset -> parameters came with request in postman->body->raw) but it's processed
@@ -69,16 +81,11 @@ async def procces_endpoint(request:Request,project_id:str , Proccess_Request: Pr
    overlap_size=Proccess_Request.overlap_size
    do_reset=Proccess_Request.do_reset
 
-   project_model=ProjectModel(db_client=request.app.db_client)
+   project_model=await ProjectModel.create_instance(db_client=request.app.db_client)
    project=await project_model.get_project_or_create_one( #await to able to collect results
       project_id=project_id
    )
-   chunk_model=ChunkModel(db_client=request.app.db_client)# obj from ChunkModel cladd which have functions like delete 
-   if do_reset == 1:
-      chunk_model.delete_chunk_by_project_id(
-         project_id=project.id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
-      )
-
+   
    
    Process_Controller=ProcessController(project_id=project_id)
    file_content=Process_Controller.get_file_content(file_id=file_id)

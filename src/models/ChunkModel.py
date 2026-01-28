@@ -8,6 +8,19 @@ class ChunkModel(BaseDataModel):
     def __init__(self, db_client: object):
         super() .__init__(db_client=db_client) #here i pass db_clients to BaseDataModel (عشان يفضل شغال) 
         self.collection=self.db_client[DataBaseEnum.COLLECTION_CHUNK_NAME.value]# to access mongo db
+    @classmethod
+    async def create_instance(cls,db_client:object):
+        instance = cls(db_client)# call init 
+        await  instance.init_collection()# to create indices
+        return instance   
+    async def init_collection(self):
+        all_collection = await self.db_client.list_collection_names()
+        if DataBaseEnum.COLLECTION_CHUNK_NAME.value not in all_collection:
+            self.collection=self.db_client[DataBaseEnum.COLLECTION_CHUNK_NAME.value]#   كدا انا معايا الكولكشن collectoin named project in mongo db   بشاور على ال  ,     
+            indexes = DataChunk.get_indexes()
+            for index in indexes:
+                await self.collection.create_index(index["key"],name=index["name"],unique=index["unique"])
+
     async def create_chunk(self,chunk:DataChunk):#take model with type DataChunk and insert in DB
        result=await self.collection.insert_one(chunk.dict(by_alias=True, exclude_unset=True))#we will take convert to dict to be able to get into DB
        chunk_id=result.inserted_id
@@ -36,5 +49,14 @@ class ChunkModel(BaseDataModel):
         )
         result.deleted_count    
 
+"""
+❓ السؤال المهم:
 
+إزاي هيعمل indexing على collection مش موجودة؟
+
+✅ الإجابة:
+
+👉 MongoDB بيخلق collection تلقائيًا عند أول عملية write أو index
+
+"""
 

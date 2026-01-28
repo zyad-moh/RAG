@@ -7,6 +7,11 @@ services:
     - "27007:27017" # mongodb run in machine on 27017
    volumes:
     - mongo_data:/data/db # data path on my laptob : data path on the machine
+   
+   environment:
+    - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME} # MONGO_INITDB_ROOT_USERNAME var name in .env
+    - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+
    networks:
     - backend
    restart: always
