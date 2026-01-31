@@ -20,19 +20,21 @@ class ProcessController(BaseController):
     file_ext = self.get_file_extension(file_id=file_id)
 
     file_path = os.path.join(self.project_path , file_id)# progect path(folder dir + project id) + file id (new file name)
-    
+    if not os.path.exists(file_path):
+      return None
     if file_ext == ProccessingEnum.TXT.value: # here we apply enums as '.txt' is a value for a constant  
-        return TextLoader(file_path, encoding="utf-8")
+      return TextLoader(file_path, encoding="utf-8")
 
     if file_ext == ProccessingEnum.PDF.value:
-        return PyMuPDFLoader(file_path)
+      return PyMuPDFLoader(file_path)
     
     return None
 
   def get_file_content(self, file_id: str):
     loader=self.get_file_loader(file_id=file_id)
-    return loader.load()# return list (page content ,meta data)
-
+    if loader:# ensure that loader not none
+      return loader.load()# return list (page content ,meta data)
+    return None
   def procces_file_content(self,file_content:list,file_id: str,chunk_size:int = 100,overlap_size: int=20):
     # here i didn't use schema as it's for validate user request no need to use it between my code 
     text_splitter=RecursiveCharacterTextSplitter(

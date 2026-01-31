@@ -76,7 +76,7 @@ async def upload_data(request:Request,project_id:str,file:UploadFile,
 
 @data_router.post("/process/{project_id}")
 async def procces_endpoint(request:Request,project_id:str , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id,chunk_size,over_lap,do_reset -> parameters came with request in postman->body->raw) but it's processed
-   file_id=Proccess_Request.file_id 
+   # file_id=Proccess_Request.file_id 
    chunk_size=Proccess_Request.chunk_size
    overlap_size=Proccess_Request.overlap_size
    do_reset=Proccess_Request.do_reset
@@ -85,44 +85,78 @@ async def procces_endpoint(request:Request,project_id:str , Proccess_Request: Pr
    project=await project_model.get_project_or_create_one( #await to able to collect results
       project_id=project_id
    )
-   
-   
-   Process_Controller=ProcessController(project_id=project_id)
-   file_content=Process_Controller.get_file_content(file_id=file_id)
-   file_chunks =Process_Controller.procces_file_content(file_content=file_content,file_id=file_id,chunk_size=chunk_size,overlap_size=overlap_size)
-   
-   if file_chunks is None or len(file_chunks) == 0:
-        return JSONResponse(
+
+   project_file_ids={}
+   asset_model=await AssetModel.create_instance(
+      db_client=request.app.db_client)# here to connect to mongo db 
+   if Proccess_Request.file_id:
+      asset_record=await asset_model.get_asset_record(asset_project_id=project.id,asset_name=Proccess_Request.file_id)
+      if asset_record is None: 
+         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={
-                "signal": ResponseSignal.PROCESSING_FAILED.value
+               "signal":ResponseSignal.FILE_ID_ERROR.value,
             }
-        )
-   # i need to convert each chunk to object of data chunk
-   file_chunks_records=[
-      DataChunk(
-         chunk_text=chunk.page_content,
-         chunk_metadata=chunk.metadata,
-         chunk_order=i+1,
-         chunk_project_id=project.id
-           
+         )
+      project_file_ids = {asset_record.id:asset_record.asset_name}#asset_name for apply process of chunking amd id for show recourse
+   else:
+      project_files=await asset_model.get_all_project_assets(asset_project_id=project.id,asset_type=AssetTypeEnum.FILE.value,) # note when create asset we use the mongodb id(the id made for each project_id) not the request id
+      project_file_ids={record.id:record.asset_name for record in project_files}# from asset collection store only the file_id(asset_name)and asset id of the spacified project.id,asset_type note project.id,asset_type contain many files
+   # we used .asset_name instade of["asset_name"] as now record is pydantic model 
+   if len(project_file_ids) == 0: 
+      return JSONResponse(
+         status_code=status.HTTP_400_BAD_REQUEST,
+         content={
+            "signal":ResponseSignal.NO_FILES_ERROR.value,
+         }
       )
-      for i,chunk in enumerate(file_chunks)
-   ]
-   chunk_model=ChunkModel(
-      db_client=request.app.db_client
-   )
+   # i need to apply the below code on all element (file_id) in project_file_ids 
+   Process_Controller=ProcessController(project_id=project_id)
    chunk_model=ChunkModel(db_client=request.app.db_client)# obj from ChunkModel cladd which have functions like delete 
-   if do_reset == 1:
-      _ = await chunk_model.delete_chunk_by_project_id(# i need to konw how function runed also i didn't call the _ ????? 
-         project_id=project.id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
-      )
 
-   no_records=await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+   if do_reset == 1:
+         _ = await chunk_model.delete_chunk_by_project_id(# i need to konw how function runed also i didn't call the _ ????? 
+            project_id=project.id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
+         )
+   no_records = 0
+   no_files=0
+   for asset_id,file_id in project_file_ids.items():
+      file_content=Process_Controller.get_file_content(file_id=file_id)
+
+      if file_content is None:# may be error when get file from source 
+         logger.error(f"error while processing {file_id}")
+         continue
+
+      file_chunks =Process_Controller.procces_file_content(file_content=file_content,file_id=file_id,chunk_size=chunk_size,overlap_size=overlap_size)
+      
+      if file_chunks is None or len(file_chunks) == 0:
+         return JSONResponse(
+               status_code=status.HTTP_400_BAD_REQUEST,
+               content={
+                  "signal": ResponseSignal.PROCESSING_FAILED.value
+               }
+         )
+      # i need to convert each chunk to object of data chunk
+      file_chunks_records=[
+         DataChunk(
+            chunk_text=chunk.page_content,
+            chunk_metadata=chunk.metadata,
+            chunk_order=i+1,
+            chunk_project_id=project.id,
+            chunk_asset_id =asset_id #id of file which defiend from mongo to know from which asset this chunk is come (you will find many chunk related to one asset) , instad of open recourse to see recourse of file(asset) 
+         )
+         for i,chunk in enumerate(file_chunks)
+      ]
+      
+      
+
+      no_records += await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+      no_files +=1
    return JSONResponse(
       {
-         "signal":ResponseSignal.PROCESSING_SUCCESS.value,
-         "inserted_chunks":no_records
+         "signal" : ResponseSignal.PROCESSING_SUCCESS.value,
+         "inserted_chunks" : no_records,
+         "processed_files" : no_files
       }
 
    )

@@ -26,6 +26,24 @@ class AssetModel(BaseDataModel):# i need to inheret from base model to access db
         asset.id = result.inserted_id
 
         return asset
-   async def get_all_project_assets(self,asset_project_id:str):
-        return await self.collection.find({"asset_project_id":ObjectId(asset_project_id )if isinstance(asset_project_id, str) else asset_project_id}).to_list(length=None)
+   async def get_all_project_assets(self,asset_project_id:str,asset_type:str):
+        records = await self.collection.find({
+          "asset_project_id":ObjectId(asset_project_id )if isinstance(asset_project_id, str) else asset_project_id,
+          "asset_type":asset_type,
+          }).to_list(length=None)
+        return[
+          Asset(**record)# return record based on Asset pydantic model
+          for record in records
+        ]
         #the stringed one refer to the column in the collection but tha variabled one refer to  the project id come from the request , ObjectId(asset_project_id ) casting convert from str to ObjectId 
+   async def get_asset_record(self,asset_project_id:str,asset_name:str):
+        record = await self.collection.find_one({
+          "asset_project_id":ObjectId(asset_project_id)if isinstance(asset_project_id, str) else asset_project_id,
+          "asset_name":asset_name,
+          })
+        if record:  
+          return Asset(**record)# return record based on Asset pydantic model
+        return None
+
+
+   
