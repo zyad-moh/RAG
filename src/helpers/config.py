@@ -25,6 +25,13 @@ class settings(BaseSettings):
     INPUT_DAFAULT_MAX_CHARACTERS: int = None
     GENERATION_DAFAULT_MAX_TOKENS: int = None
     GENERATION_DAFAULT_TEMPERATURE: float = None
+    
+    VECTOR_DB_BAKEND : str 
+    VECTOR_DB_PATH : str 
+    VECTOR_DB_DISTANCE_METHOD : str = None
+    
+    
+    
     class Config():# path of .env, any thing in ".env" will be loaded and i will able to use it(data configration for validation)
         env_file=".env"
 
