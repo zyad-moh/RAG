@@ -9,6 +9,22 @@ class settings(BaseSettings):
     FILE_DEFULT_CHUNK_SIZE:int
     MONGODB_URL: str
     MONGODB_DATABASE: str    
+    MONGODB_URL: str
+    MONGODB_DATABASE: str
+
+    GENERATION_BACKEND: str
+    EMBEDDING_BACKEND: str
+
+    OPENAI_API_KEY: str = None
+    OPENAI_API_URL: str = None
+    COHERE_API_KEY: str = None
+
+    GENERATION_MODEL_ID: str = None
+    EMBEDDING_MODEL_ID: str = None
+    EMBEDDING_MODEL_SIZE: int = None
+    INPUT_DAFAULT_MAX_CHARACTERS: int = None
+    GENERATION_DAFAULT_MAX_TOKENS: int = None
+    GENERATION_DAFAULT_TEMPERATURE: float = None
     class Config():# path of .env, any thing in ".env" will be loaded and i will able to use it(data configration for validation)
         env_file=".env"
 
