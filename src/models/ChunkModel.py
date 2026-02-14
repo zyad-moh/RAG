@@ -23,7 +23,7 @@ class ChunkModel(BaseDataModel):
 
     async def create_chunk(self,chunk:DataChunk):#take model with type DataChunk and insert in DB
        result=await self.collection.insert_one(chunk.dict(by_alias=True, exclude_unset=True))#we will take convert to dict to be able to get into DB
-       chunk_id=result.inserted_id
+       chunk._id=result.inserted_id
        return chunk
     async def get_chunk(self,chunk_id:str):#
         result=await self.collection.find_one({
@@ -47,7 +47,15 @@ class ChunkModel(BaseDataModel):
         result=await self.collection.delete_many(
             { "chunk_project_id" : project_id}
         )
-        result.deleted_count    
+        return result.deleted_count    
+    async def get_project_chunk(self,project_id:ObjectId,page_no:int=1,page_size:int=50):
+        records = self.collection.find( # i have to make skip to prevent 
+            "chunk_project_id" : project_id
+        ).skip(
+                (page_no-1) * page_size
+                ).limit(page_size).to_list(length=None)
+        
+        return [ DataChunk(**record) for record in records]
 
 """
 ❓ السؤال المهم:
