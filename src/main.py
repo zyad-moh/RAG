@@ -1,10 +1,10 @@
 from fastapi import FastAPI
-from routes import base,data
+from routes import base,data,nlp
 from motor.motor_asyncio import AsyncIOMotorClient
 from helpers.config import get_settings
 from stores.llm.LLMProviderFactory import LLMProviderFactory
 from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
-
+from stores.llm.templates.template_parser import TemplateParser
 app=FastAPI()
 @app.on_event("startup")
 async def startup_span():
@@ -27,8 +27,12 @@ async def startup_span():
       provider=settings.VECTOR_DB_BAKEND
    )# return QdrantDBProvider which contain all functions of vector database
    app.vectordb_client.connect()
+   app.template_parser = TemplateParser(
+      language = settings.PRIMARY_LANG,
+      default_language = settings.DEFAULT_LANG,
+   )
 #Case A — 1 user uploads a file Only 1 connection is used at a time, but it is reused for multiple requests.
-
+  
 @app.on_event("shutdown")#closes all connections when FastAPI shuts down.
 async def shutdown_span():
    app.mongo_conn.close()
@@ -37,6 +41,7 @@ async def shutdown_span():
 
 app.include_router(base.base_router)
 app.include_router(data.data_router)
+app.include_router(nlp.nlp_router)
 
 
 

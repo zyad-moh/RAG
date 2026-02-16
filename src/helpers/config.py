@@ -29,7 +29,8 @@ class settings(BaseSettings):
     VECTOR_DB_BAKEND : str 
     VECTOR_DB_PATH : str 
     VECTOR_DB_DISTANCE_METHOD : str = None
-    
+    PRIMARY_LANG: str = "en"
+    DEFAULT_LANG : str = "en"
     
     
     class Config():# path of .env, any thing in ".env" will be loaded and i will able to use it(data configration for validation)

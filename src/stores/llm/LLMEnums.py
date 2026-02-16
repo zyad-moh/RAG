@@ -13,7 +13,7 @@ class CoHereEnums(Enum):
     SYSTEM = "SYSTEM"
     USER = "USER"
     ASSISTANT = "CHATBOT"
-    DOCUMENT = "search_document'
+    DOCUMENT = "search_document"
     QUERY = "search_query"
 
 class DocumentTypeEnum(Enum) :

@@ -49,13 +49,17 @@ class ChunkModel(BaseDataModel):
         )
         return result.deleted_count    
     async def get_project_chunk(self,project_id:ObjectId,page_no:int=1,page_size:int=50):
-        records = self.collection.find( # i have to make skip to prevent 
-            "chunk_project_id" : project_id
+        records = await self.collection.find( # i have to make skip to prevent 
+            {"chunk_project_id" : project_id}
         ).skip(
                 (page_no-1) * page_size
                 ).limit(page_size).to_list(length=None)
         
-        return [ DataChunk(**record) for record in records]
+        return [
+            DataChunk(**record)
+            for record in records
+        ]
+        #So record is coming from an async function but is being used without await.
 
 """
 ❓ السؤال المهم:

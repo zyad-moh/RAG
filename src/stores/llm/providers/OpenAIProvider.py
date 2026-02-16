@@ -1,4 +1,4 @@
-from ..LLMInterface import LLMInterface
+from ..LLMinterface import LLMInterface
 from ..LLMEnums import OpenAIEnums
 from openai import OpenAI
 import logging
@@ -17,8 +17,10 @@ class OpenAIProvider(LLMInterface):
         self.generation_model_id = None
         self.embedding_model_id = None
         self.embedding_size = None # for mongodb      
-        self.client = OpenAI(api_key=self.api_key,api_url=self.api_url)
-        self.logger = loading.getLogger(__name__)
+        self.enums = OpenAIEnums
+        self.client = OpenAI(api_key=self.api_key,
+        base_url=self.api_url if self.api_url and len(self.api_url) else None)
+        self.logger = logging.getLogger(__name__)
 
     def set_generation_model(self,model_id:str):
         self.generation_model_id = model_id
@@ -31,7 +33,7 @@ class OpenAIProvider(LLMInterface):
         return text[:self.default_input_max_characters]
     # what if openai don't support generation ,only embedding 
     # and in generate_text i put (pass) that will return None which it code smell ,sol raise error to user
-    def generate_text(self,prompt:str,chat_history:list[] ,max_output_tokens:int = None,
+    def generate_text(self,prompt:str,chat_history:list=[] ,max_output_tokens:int = None,
                             temperature:float=None):# i give it text and it return it 
         
         if not self.client:
@@ -55,7 +57,7 @@ class OpenAIProvider(LLMInterface):
             self. logger.error("Error while generating text with OpenAI")
             return None
         
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
 
     
 

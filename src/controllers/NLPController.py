@@ -1,15 +1,18 @@
 from .BaseController import BaseController
 # here iam trynig to control vectors db like reset and get info
 # i know that i made this frunctions in the provider but lets see why we call it again here
-from models.db_schemes import project, data_chunk
+from models.db_schemes import project, DataChunk
 from stores.llm.LLMEnums import DocumentTypeEnum
+import json 
+
 class NLPController(BaseController):
-    def __init__(self,vectordb_client,generation_client,embedding_client):
+    def __init__(self,vectordb_client,generation_client,embedding_client,template_parser):
         super().__init__()
 
         self.vectordb_client = vectordb_client
         self.generation_client = generation_client
         self.embedding_client = embedding_client
+        self.template_parser = template_parser
     def create_collection_name(self, project_id):
         return f"collection_{project_id}"
     
@@ -20,9 +23,11 @@ class NLPController(BaseController):
     def get_vector_db_collection_info(self,project=project):
         collection_name = self.create_collection_name(project.project_id)
         collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
-        return collection_info
+        return json.loads(#to convert string to dict
+            json.dumps(collection_info , default =lambda x: x.__dict__)
+        )
 
-    def index_into_vector_db(self,project=project,chunks:List[DataChunk],do_reset:bool = False):
+    def index_into_vector_db(self,project:project,chunks:list[DataChunk],chunks_ids:list[int],do_reset:bool = False):
         collection_name = self.create_collection_name(project_id=project.project_id)
         texts = [c.chunk_text for c in chunks]
         metadata =[c.chunk_metadata for c in chunks]
@@ -35,10 +40,64 @@ class NLPController(BaseController):
 
         _ = self.vectordb_client.insert_many(
             collection_name = collection_name,
-            text = texts,
+            texts = texts,
             metadata=metadata,
-            vectors = vectors,
-
+            vector = vectors,
+            record_ids=chunks_ids,
         )
 
         return True
+    def search_vector_db_collection(self,project:project,text:str,limit:int = 10):
+        collection_name = self.create_collection_name(project_id=project.project_id)
+        vector=self.embedding_client.embed_text(text=text,document_type=DocumentTypeEnum.QUERY.value)
+        if not vector or len(vector)==0:
+            return False 
+        result = self.vectordb_client.search_by_vector(# result is similar to collection info as it contain many diff objects but after apply schema it became a document or dict
+            collection_name = collection_name,
+            vector = vector,
+            limit=limit,
+        )
+
+        if not result:
+            return False
+
+        return result
+    def answer_rag_question(self,project:project,query:str,limit:int = 10):
+        
+        answer , full_prompt , chat_history = None , None , None
+
+        retrieved_documents = self.search_vector_db_collection(project=project,text=query,limit = limit)
+        if not retrieved_documents or len(retrieved_documents) == 0:
+            return answer , full_prompt , chat_history
+        
+        system_prompt = self.template_parser.get("rag","system_prompt")
+        """document_prompt = []
+        for i,doc in enumerate(retrieved_documents):
+        document_prompt.append(self.template_parser.get("rag","document_prompt",{
+            "doc_num" : i+1 ,
+            "chunk_text" : doc.text,
+            }))"""
+
+        documents_prompts="\n".join ([
+            self.template_parser.get("rag", "document_prompt", {
+                    "doc_num": idx + 1,
+                    "chunck_text": doc.text,
+            })
+            for idx, doc in enumerate(retrieved_documents)
+        ])
+
+        footer_prompt = self.template_parser.get("rag","footer_prompt")
+        
+        chat_history = [self.generation_client.construct_prompt(
+            prompt = system_prompt,
+            role = self.generation_client.enums.SYSTEM.value # instate fo writing coher or open ai enum and i don't know which one is used 
+            )]
+
+        full_prompt = "\n\n".join([documents_prompts,footer_prompt])
+
+        answer = self.generation_client.generate_text(
+            prompt = full_prompt,
+            chat_history = chat_history
+        )
+
+        return answer , full_prompt , chat_history
