@@ -15,9 +15,27 @@ services:
    networks:
     - backend
    restart: always
+  
+  pgvector:
+    image: pgvector/pgvector:0.8.1-pg15 #repo name+ image tag name
+    container_name: pgvector  # docker will run mongo service as a separated machine , the idea is that you need to connectg with that maschine and now mongo db is run that machine , i need to listen to this port 
+    ports: 
+    - "5432:5432" # mongodb run in machine on 27017
+    volumes:
+    - pgvector_data:/var/lib/postgresql/data # data path on my laptob : data path on the machine
+   
+    environment:
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+    - backend
+    restart: always
+
+
+
 
 volumes:
   mongo_data:
-  
+  pgvector_data:
+
 networks: #virtual network to access ports
   backend:
