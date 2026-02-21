@@ -7,12 +7,16 @@ from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from stores.llm.templates.template_parser import TemplateParser
 from sqlalchemy.ext.asyncio import create_async_engine , AsyncSession
 from sqlalchemy.orm import sessionmaker
+#لأن Project مش مجرد class عادي —
+#هو ORM Model مربوط بجدول في PostgreSQL.#
 app=FastAPI()
 @app.on_event("startup")
 async def startup_span():
    settings = get_settings()# equal to i take obj from class  don't write get_settings.MONGODB_URL
    #app.mongo_conn=AsyncIOMotorClient(settings.MONGODB_URL)
-   postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}:{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}:{settings.POSTGRES MAIN DATABASE}"
+   postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
+   postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
+
    app.db_engine = create_async_engine(postgres_conn) # session for talk with database and close that session
   
 

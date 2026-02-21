@@ -1,7 +1,7 @@
 from .BaseController import BaseController
 # here iam trynig to control vectors db like reset and get info
 # i know that i made this frunctions in the provider but lets see why we call it again here
-from models.db_schemes import project, DataChunk
+from models.db_schemes import Project, DataChunk
 from stores.llm.LLMEnums import DocumentTypeEnum
 import json 
 
@@ -16,18 +16,18 @@ class NLPController(BaseController):
     def create_collection_name(self, project_id):
         return f"collection_{project_id}"
     
-    def reset_vector_db_collection(self,project=project):
+    def reset_vector_db_collection(self,project=Project):
         collection_name = self.create_collection_name(project.project_id)
         return self.vectordb_client.delete_collection(collection_name=collection_name)
     
-    def get_vector_db_collection_info(self,project=project):
+    def get_vector_db_collection_info(self,project=Project):
         collection_name = self.create_collection_name(project.project_id)
         collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
         return json.loads(#to convert string to dict
             json.dumps(collection_info , default =lambda x: x.__dict__)
         )
 
-    def index_into_vector_db(self,project:project,chunks:list[DataChunk],chunks_ids:list[int],do_reset:bool = False):
+    def index_into_vector_db(self,project:Project,chunks:list[DataChunk],chunks_ids:list[int],do_reset:bool = False):
         collection_name = self.create_collection_name(project_id=project.project_id)
         texts = [c.chunk_text for c in chunks]
         metadata =[c.chunk_metadata for c in chunks]
@@ -47,7 +47,7 @@ class NLPController(BaseController):
         )
 
         return True
-    def search_vector_db_collection(self,project:project,text:str,limit:int = 10):
+    def search_vector_db_collection(self,project:Project,text:str,limit:int = 10):
         collection_name = self.create_collection_name(project_id=project.project_id)
         vector=self.embedding_client.embed_text(text=text,document_type=DocumentTypeEnum.QUERY.value)
         if not vector or len(vector)==0:
@@ -62,7 +62,7 @@ class NLPController(BaseController):
             return False
 
         return result
-    def answer_rag_question(self,project:project,query:str,limit:int = 10):
+    def answer_rag_question(self,project:Project,query:str,limit:int = 10):
         
         answer , full_prompt , chat_history = None , None , None
 
@@ -81,7 +81,7 @@ class NLPController(BaseController):
         documents_prompts="\n".join ([
             self.template_parser.get("rag", "document_prompt", {
                     "doc_num": idx + 1,
-                    "chunck_text": doc.text,
+                    "chunck_text": self.generation_client.process_text (doc.text),
             })
             for idx, doc in enumerate(retrieved_documents)
         ])

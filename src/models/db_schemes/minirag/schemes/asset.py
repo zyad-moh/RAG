@@ -12,18 +12,19 @@ class Asset(SQLAlchemyBase):
     asset_type = Column(String, nullable=False)
     asset_name = Column(String, nullable=False)
     asset_size = Column (Integer, nullable=False)
-    asset_config = Column (JSONB, nullable=False)# JSONB because we want to read(retrive data) as it'd latency is low
+    asset_config = Column (JSONB, nullable=True)# JSONB because we want to read(retrive data) as it'd latency is low
 
-    asset_progect_id = Column(Integer,ForeignKey("projects.project_id"),nullable=False)
+    asset_project_id = Column(Integer,ForeignKey("projects.project_id"),nullable=False)
    
     created_at = Column(DateTime(timezone=True),server_default = func.now(),nullable = False)
     update_at = Column(DateTime(timezone=True),onupdate= func.now(),nullable=True)
 
    
-    project = relationship("project",back_populates="assets") # you have class or model named with project i will take data from it to put in assets
+    project = relationship("Project",back_populates="assets") # you have class or model named with project i will take data from it to put in assets
+    chunks = relationship("DataChunk", back_populates="asset")
 
     __tabel_args__ = (
-        Index('ix_asset_progect_id',asset_progect_id), # apply index on asset_progect_id  
+        Index('ix_asset_project_id',asset_project_id), # apply index on asset_progect_id  
         Index('ix_asset_type',asset_type) # apply index on asset_progect_id  
     )
 

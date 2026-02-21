@@ -16,7 +16,7 @@ class settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_HOST: str
     POSTGRES_PORT: int
-    POSTGRES MAIN DATABASE: str
+    POSTGRES_MAIN_DATABASE: str
 
     GENERATION_BACKEND: str
     EMBEDDING_BACKEND: str

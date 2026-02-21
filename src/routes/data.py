@@ -21,7 +21,7 @@ data_router=APIRouter( # prefix for end point
 # project id : when make procces like upload file i (user) should tell system what is project id 
 #function for end point 
 @data_router.post("/upload/{project_id}")# end point , recieve file then upload it to the system
-async def upload_data(request:Request,project_id:str,file:UploadFile,
+async def upload_data(request:Request,project_id:int,file:UploadFile,
                      app_settings:settings=Depends(get_settings)): 
    
    project_model=await ProjectModel.create_instance(db_client=request.app.db_client)
@@ -58,7 +58,7 @@ async def upload_data(request:Request,project_id:str,file:UploadFile,
       )
    asset_model=await AssetModel.create_instance(db_client=request.app.db_client)# that create the collection if not exist not creaate the the document
    asset_resource =Asset(
-      asset_project_id=project.id,
+      asset_project_id=project.project_id,
       asset_type=AssetTypeEnum.FILE.value,
       asset_name=file_id,
       asset_size=os.path.getsize(file_path)
@@ -68,14 +68,14 @@ async def upload_data(request:Request,project_id:str,file:UploadFile,
    return JSONResponse(
        content={
            "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-           "file id": str(asset_record.id),
+           "file id": str(asset_record.asset_id),
            #"project_id":str(project._id)
          }
          )
    
 
 @data_router.post("/process/{project_id}")
-async def procces_endpoint(request:Request,project_id:str , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id,chunk_size,over_lap,do_reset -> parameters came with request in postman->body->raw) but it's processed
+async def procces_endpoint(request:Request,project_id:int , Proccess_Request: ProcessRequest):#Proccess_Request it's like (file_id,chunk_size,over_lap,do_reset -> parameters came with request in postman->body->raw) but it's processed
    # file_id=Proccess_Request.file_id 
    chunk_size=Proccess_Request.chunk_size
    overlap_size=Proccess_Request.overlap_size
@@ -90,7 +90,7 @@ async def procces_endpoint(request:Request,project_id:str , Proccess_Request: Pr
    asset_model=await AssetModel.create_instance(
       db_client=request.app.db_client)# here to connect to mongo db 
    if Proccess_Request.file_id:
-      asset_record=await asset_model.get_asset_record(asset_project_id=project.id,asset_name=Proccess_Request.file_id)
+      asset_record=await asset_model.get_asset_record(asset_project_id=project.project_id,asset_name=Proccess_Request.file_id)
       if asset_record is None: 
          return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -98,10 +98,10 @@ async def procces_endpoint(request:Request,project_id:str , Proccess_Request: Pr
                "signal":ResponseSignal.FILE_ID_ERROR.value,
             }
          )
-      project_file_ids = {asset_record.id:asset_record.asset_name}#asset_name for apply process of chunking amd id for show recourse
+      project_file_ids = {asset_record.asset_id:asset_record.asset_name}#asset_name for apply process of chunking amd id for show recourse
    else:
-      project_files=await asset_model.get_all_project_assets(asset_project_id=project.id,asset_type=AssetTypeEnum.FILE.value,) # note when create asset we use the mongodb id(the id made for each project_id) not the request id
-      project_file_ids={record.id:record.asset_name for record in project_files}# from asset collection store only the file_id(asset_name)and asset id of the spacified project.id,asset_type note project.id,asset_type contain many files
+      project_files=await asset_model.get_all_project_assets(asset_project_id=project.project_id,asset_type=AssetTypeEnum.FILE.value,) # note when create asset we use the mongodb id(the id made for each project_id) not the request id
+      project_file_ids={record.asset_id:record.asset_name for record in project_files}# from asset collection store only the file_id(asset_name)and asset id of the spacified project.id,asset_type note project.id,asset_type contain many files
    # we used .asset_name instade of["asset_name"] as now record is pydantic model 
    if len(project_file_ids) == 0: 
       return JSONResponse(
@@ -116,7 +116,7 @@ async def procces_endpoint(request:Request,project_id:str , Proccess_Request: Pr
 
    if do_reset == 1:
          _ = await chunk_model.delete_chunk_by_project_id(# i need to konw how function runed also i didn't call the _ ????? 
-            project_id=project.id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
+            project_id=project.project_id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
          )
    no_records = 0
    no_files=0
@@ -142,7 +142,7 @@ async def procces_endpoint(request:Request,project_id:str , Proccess_Request: Pr
             chunk_text=chunk.page_content,
             chunk_metadata=chunk.metadata,
             chunk_order=i+1,
-            chunk_project_id=project.id,
+            chunk_project_id=project.project_id,
             chunk_asset_id =asset_id #id of file which defiend from mongo to know from which asset this chunk is come (you will find many chunk related to one asset) , instad of open recourse to see recourse of file(asset) 
          )
          for i,chunk in enumerate(file_chunks)
