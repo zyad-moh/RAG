@@ -13,6 +13,8 @@ from models.AssetModel import AssetModel
 from models.ChunkModel import ChunkModel#contain functions like create
 from models.db_schemes import DataChunk,Asset
 from models.enums.AssetTypeEnum import AssetTypeEnum
+from controllers import NLPController
+
 logger = logging.getLogger('uvicorn.error')
 data_router=APIRouter( # prefix for end point
    prefix="/api/v1/data",
@@ -85,6 +87,14 @@ async def procces_endpoint(request:Request,project_id:int , Proccess_Request: Pr
    project=await project_model.get_project_or_create_one( #await to able to collect results
       project_id=project_id
    )
+   
+   nlp_controller = NLPController(
+        vectordb_client = request.app.vectordb_client,
+        generation_client = request.app.generation_client,
+        embedding_client = request.app.embedding_client,
+        template_parser = request.app.template_parser,
+
+    )
 
    project_file_ids={}
    asset_model=await AssetModel.create_instance(
@@ -113,11 +123,14 @@ async def procces_endpoint(request:Request,project_id:int , Proccess_Request: Pr
    # i need to apply the below code on all element (file_id) in project_file_ids 
    Process_Controller=ProcessController(project_id=project_id)
    chunk_model=ChunkModel(db_client=request.app.db_client)# obj from ChunkModel cladd which have functions like delete 
-
+   
    if do_reset == 1:
+         collaction_name = nlp_controller.create_collection_name(project_id=project.project_i)
+         _ = await request.app.vectordb_client.delete_collection(collaction_name = collaction_name)
          _ = await chunk_model.delete_chunk_by_project_id(# i need to konw how function runed also i didn't call the _ ????? 
             project_id=project.project_id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
          )
+
    no_records = 0
    no_files=0
    for asset_id,file_id in project_file_ids.items():

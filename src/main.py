@@ -15,7 +15,6 @@ async def startup_span():
    settings = get_settings()# equal to i take obj from class  don't write get_settings.MONGODB_URL
    #app.mongo_conn=AsyncIOMotorClient(settings.MONGODB_URL)
    postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
-   postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
 
    app.db_engine = create_async_engine(postgres_conn) # session for talk with database and close that session
   
@@ -27,7 +26,7 @@ async def startup_span():
    
    
    llm_provider_factory = LLMProviderFactory(settings)
-   vectordb_provider_factory =VectorDBProviderFactory(settings)
+   vectordb_provider_factory =VectorDBProviderFactory(config = settings , db_client = app.db_client)
    # generation client
    app.generation_client = llm_provider_factory.create(provider=settings.GENERATION_BACKEND)
    app.generation_client.set_generation_model(model_id = settings.GENERATION_MODEL_ID)
@@ -40,7 +39,7 @@ async def startup_span():
    app.vectordb_client=vectordb_provider_factory.create(
       provider=settings.VECTOR_DB_BAKEND
    )# return QdrantDBProvider which contain all functions of vector database
-   app.vectordb_client.connect()
+   await app.vectordb_client.connect()
    app.template_parser = TemplateParser(
       language = settings.PRIMARY_LANG,
       default_language = settings.DEFAULT_LANG,
@@ -50,7 +49,7 @@ async def startup_span():
 @app.on_event("shutdown")#closes all connections when FastAPI shuts down.
 async def shutdown_span():
    app.db_engine.dispose()
-   app.vectordb_client.disconnect()
+   await app.vectordb_client.disconnect()
 
 
 app.include_router(base.base_router)

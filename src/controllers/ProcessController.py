@@ -3,8 +3,16 @@ from .ProjectController import ProjectController
 from models import ProccessingEnum
 from langchain_community. document_loaders import TextLoader
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+#from langchain_text_splitters import RecursiveCharacterTextSplitter # i hashed this line because i will not use it i will make the base line function for chunking text 
+# as it could split a chunk with not completed meaning i mean don't take the all line 
 import os
+from typing import List
+from dataclasses import dataclass
+
+@dataclass
+class Document():
+  page_content : str
+  metadata : dict
 
 class ProcessController(BaseController):
   def __init__(self, project_id: str):
@@ -37,7 +45,7 @@ class ProcessController(BaseController):
     return None
   def procces_file_content(self,file_content:list,file_id: str,chunk_size:int = 100,overlap_size: int=20):
     # here i didn't use schema as it's for validate user request no need to use it between my code 
-    text_splitter=RecursiveCharacterTextSplitter(
+    """text_splitter=RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=overlap_size,
         length_function=len
@@ -47,8 +55,38 @@ class ProcessController(BaseController):
     file_content_metadata =[rec.metadata for rec in file_content ]
 
     chunks=text_splitter.create_documents(file_content_texts,metadatas=file_content_metadata) # i need that metadata to be with each chunk
+    """
+    chunks = self.process_simpler_splitter(
+    texts=file_content_texts,
+    metadatas=file_content_metadata,
+    chunk_size=chunk_size,)
     return chunks
 
+
+  def process_simpler_splitter(self, texts: List[str],metadatas:List[dict],chunk_size:int , splitter: str="\n"):
+    full_text = " ".join(texts)
+    docs = [ doc.strip() for doc in full_text.split(splitter) if doc.strip()>1] # the docs contain completed lines of text 
+    
+    chunks=[]
+    chunk=""
+    for doc in docs:
+      chunk+=doc + splitter
+      if len(chunk) >= chunk_size:
+        chunks.append(Document(
+          page_content = chunk.strip(),
+          metadata = {}
+        ))
+        chunk=""
+
+    if len(chunk) >= 0:
+        chunks. append(Document(
+        page_content=chunk.strip(),
+        metadata=()
+        ))
+    return chunks 
+        
+  
+   
 """#file_content: List[Document]
 
 Document(

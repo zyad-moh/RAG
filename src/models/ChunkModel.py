@@ -108,6 +108,13 @@ class ChunkModel(BaseDataModel):
             for record in records
         ]"""
         #So record is coming from an async function but is being used without await.
+    async def get_total_chunks_count(self, project_id: ObjectId):
+        async with self.db_client() as session:
+            total_count = 0
+            count_sql = select(func.count(DataChunk.chunk_id)).where(DataChunk.chunk_project_id == project_id)
+            records_count = await session.execute(count_sql)
+            total_count = records_count.scalar()
+        return total_count
 
 """
 ❓ السؤال المهم:

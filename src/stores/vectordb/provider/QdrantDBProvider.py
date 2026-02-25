@@ -5,10 +5,11 @@ import logging
 from models.db_schemes import RetrievedDocument
 
 class QdrantDBProvider(VectorDBInerface):
-    def __init__(self,db_path:str,distance_method:str):
+    def __init__(self,db_client:str,defult_vector_size = 384,distance_method:str = None,index_threshold:int = 100):
         self.client=None
-        self.db_path=db_path
+        self.db_client=db_client # it was called db_client but i changed it to unify the header of 2 profider (qdrant and pgvector)
         self.distance_method=None
+        self.defult_vector_size=defult_vector_size
         self.logger = logging.getLogger(__name__)
         if distance_method == DistanceMethodEnums.COSINE.value:
             self.distance_method=models.Distance.COSINE
@@ -16,30 +17,32 @@ class QdrantDBProvider(VectorDBInerface):
             self.distance_method=models.Distance.DOT
 
         
-    def connect(self):
-        self.client=QdrantClient(path=self.db_path)
+    async def connect(self):
+        self.client=QdrantClient(path=self.db_client)
 
-    def disconnect(self):
+    async def disconnect(self):
         self.client=None
     
-    def is_collection_existed(self,collection_name:str)->bool:
+    async def is_collection_existed(self,collection_name:str)->bool:
         return self.client.collection_exists(collection_name=collection_name)
 
-    def list_all_collection(self)->list:
+    async def list_all_collection(self)->list:
         return self.client.get_collections()
 
-    def get_collection_info(self,collection_name:str)->dict:
+    async def get_collection_info(self,collection_name:str)->dict:
         return self.client.get_collection(collection_name=collection_name)    
     
-    def delete_collection(self,collection_name:str):
+    async def delete_collection(self,collection_name:str):
         if self.is_collection_existed(collection_name):
+            self.logger.info(f"Deleting collection:{collection_name}")
             return self.client.delete_collection(collection_name=collection_name)    
 
-    def create_collection(self, collection_name:str,embedding_size:int,do_reset:bool = False):
+    async def create_collection(self, collection_name:str,embedding_size:int,do_reset:bool = False):
         if do_reset:
             _ = self.delete_collection(collection_name=collection_name)
 
         if not self.is_collection_existed(collection_name=collection_name):
+            self.logger.info(f"start : creating Qdrant collection :{collaction_name}")
             _ = self.client.create_collection(
                 collection_name = collection_name,
                 vectors_config = models.VectorParams(size=embedding_size,distance=self.distance_method)
@@ -48,7 +51,7 @@ class QdrantDBProvider(VectorDBInerface):
         
         return False
 
-    def insert_one(self,collection_name:str,text:str,vector:list,metadata:dict =None,record_id:str=None):
+    async def insert_one(self,collection_name:str,text:str,vector:list,metadata:dict =None,record_id:str=None):
         if not self.is_collection_existed(collection_name=collection_name):
             self.logger.error(f"Can not insert new record to non-existed collection {collection_name}") 
             return False
@@ -71,7 +74,7 @@ class QdrantDBProvider(VectorDBInerface):
 
         return True
 
-    def insert_many(self,collection_name:str,texts:list,vector:list,metadata:list =None,record_ids:list=None,
+    async def insert_many(self,collection_name:str,texts:list,vector:list,metadata:list =None,record_ids:list=None,
     batch_size:int=50):
         if metadata is None:
             metadata = [None] * len(texts)
@@ -109,7 +112,7 @@ class QdrantDBProvider(VectorDBInerface):
 
             return True
 
-    def search_by_vector(self, collection_name: str, vector: list, limit: int = 5):
+    async def search_by_vector(self, collection_name: str, vector: list, limit: int = 5):
 
         result =  self.client.search(
         collection_name=collection_name,
@@ -122,4 +125,4 @@ class QdrantDBProvider(VectorDBInerface):
         "text":res.payload["text"]
         
         }) for res in result]
-        # i think i wrote score and text in ** to force it retrive me only this 2 not all objects also to unify the code for each vector db fassis or qdrant
+        # i think i wrote score and text in ** to force it retrive me only this 2 not all objects also to unify the code for each vector db pgvec or qdrant
