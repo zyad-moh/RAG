@@ -50,12 +50,12 @@ class ProcessController(BaseController):
         chunk_overlap=overlap_size,
         length_function=len
     )
-
+"""
     file_content_texts =[rec.page_content for rec in file_content ]# why assigned page_content in list 
     file_content_metadata =[rec.metadata for rec in file_content ]
 
-    chunks=text_splitter.create_documents(file_content_texts,metadatas=file_content_metadata) # i need that metadata to be with each chunk
-    """
+    #chunks=text_splitter.create_documents(file_content_texts,metadatas=file_content_metadata) # i need that metadata to be with each chunk
+    
     chunks = self.process_simpler_splitter(
     texts=file_content_texts,
     metadatas=file_content_metadata,
@@ -65,7 +65,7 @@ class ProcessController(BaseController):
 
   def process_simpler_splitter(self, texts: List[str],metadatas:List[dict],chunk_size:int , splitter: str="\n"):
     full_text = " ".join(texts)
-    docs = [ doc.strip() for doc in full_text.split(splitter) if doc.strip()>1] # the docs contain completed lines of text 
+    docs = [ doc.strip() for doc in full_text.split(splitter) if len(doc.strip())>1] # the docs contain completed lines of text 
     
     chunks=[]
     chunk=""

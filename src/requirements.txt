@@ -83,8 +83,18 @@ typing-inspect==0.9.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
-uvicorn==0.29.0
+uvicorn==0.29.0 
 uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
 yarl==1.22.0
+asyncpg==0.30.0
+alembic==1.14.0
+psycopg2==2.9.10
+pgvector==0.4.0
+nltk==3.9.1
+
+# Monitoring and metrics
+prometheus-client==0.21.1
+starlette-exporter==0.23.0
+fastapi-health==0.4.0

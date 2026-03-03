@@ -125,8 +125,8 @@ async def procces_endpoint(request:Request,project_id:int , Proccess_Request: Pr
    chunk_model=ChunkModel(db_client=request.app.db_client)# obj from ChunkModel cladd which have functions like delete 
    
    if do_reset == 1:
-         collaction_name = nlp_controller.create_collection_name(project_id=project.project_i)
-         _ = await request.app.vectordb_client.delete_collection(collaction_name = collaction_name)
+         collaction_name = nlp_controller.create_collection_name(project_id=project.project_id)
+         _ = await request.app.vectordb_client.delete_collection(collection_name = collaction_name)
          _ = await chunk_model.delete_chunk_by_project_id(# i need to konw how function runed also i didn't call the _ ????? 
             project_id=project.project_id# mesh 1 ao 2 elly bib2o mawgodin fe el requset la da el project id in mongo db
          )

@@ -7,9 +7,11 @@ from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from stores.llm.templates.template_parser import TemplateParser
 from sqlalchemy.ext.asyncio import create_async_engine , AsyncSession
 from sqlalchemy.orm import sessionmaker
+from utils.metrics import setup_metrics
 #لأن Project مش مجرد class عادي —
 #هو ORM Model مربوط بجدول في PostgreSQL.#
 app=FastAPI()
+setup_metrics(app)
 @app.on_event("startup")
 async def startup_span():
    settings = get_settings()# equal to i take obj from class  don't write get_settings.MONGODB_URL
